@@ -40,6 +40,7 @@ use Temporal\Client\GRPC\ServiceClient;
 use Temporal\Client\WorkflowClient;
 use Temporal\Client\WorkflowClientInterface;
 use Temporal\Worker\WorkerFactoryInterface;
+use Temporal\WorkerFactory;
 
 return static function (ContainerConfigurator $container) {
     $container->parameters()
@@ -49,6 +50,10 @@ return static function (ContainerConfigurator $container) {
         ->set('baldinof_road_runner.temporal_address', 'temporal:7233');
 
     $services = $container->services();
+
+    $services
+        ->set(WorkerFactoryInterface::class)
+        ->factory([WorkerFactory::class, 'create']);
 
     // RoadRuner services
     $services->set(EnvironmentInterface::class)
