@@ -26,6 +26,7 @@ use Spiral\RoadRunner\GRPC\ServiceInterface;
 use Spiral\RoadRunner\Metrics\Collector;
 use Spiral\RoadRunner\Metrics\MetricsInterface;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
@@ -34,6 +35,8 @@ use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Temporal\Activity\ActivityInterface;
+use Temporal\Workflow\WorkflowInterface;
 
 class BaldinofRoadRunnerExtension extends Extension
 {
@@ -93,6 +96,16 @@ class BaldinofRoadRunnerExtension extends Extension
         }
 
         $container->setParameter('baldinof_road_runner.middlewares', $config['middlewares']);
+
+        $container->registerAttributeForAutoconfiguration(WorkflowInterface::class,
+            function (ChildDefinition $definition): void {
+                $definition->addTag('baldinof_road_runner.temporal_workflows');
+            });
+
+        $container->registerAttributeForAutoconfiguration(ActivityInterface::class,
+            function (ChildDefinition $definition): void {
+                $definition->addTag('baldinof_road_runner.temporal_activities');
+            });
 
         $this->loadIntegrations($container, $config);
 

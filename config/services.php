@@ -16,8 +16,11 @@ use Baldinof\RoadRunnerBundle\RoadRunnerBridge\HttpFoundationWorkerInterface;
 use Baldinof\RoadRunnerBundle\Worker\GrpcWorker as InternalGrpcWorker;
 use Baldinof\RoadRunnerBundle\Worker\HttpDependencies;
 use Baldinof\RoadRunnerBundle\Worker\HttpWorker as InternalHttpWorker;
+use Baldinof\RoadRunnerBundle\Worker\TemporalWorker;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistry;
 use Baldinof\RoadRunnerBundle\Worker\WorkerRegistryInterface;
+use Baldinof\RoadRunnerBundle\Worker\WorkerResolver;
+use Baldinof\RoadRunnerBundle\Worker\WorkerResolverInterface;
 use Psr\Log\LoggerInterface;
 use Spiral\Goridge\RPC\RPCInterface;
 use Spiral\RoadRunner\Environment;
@@ -33,10 +36,17 @@ use Spiral\RoadRunner\Worker as RoadRunnerWorker;
 use Spiral\RoadRunner\WorkerInterface as RoadRunnerWorkerInterface;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Temporal\Client\GRPC\ServiceClient;
+use Temporal\Client\WorkflowClient;
+use Temporal\Client\WorkflowClientInterface;
+use Temporal\Worker\WorkerFactoryInterface;
 
 return static function (ContainerConfigurator $container) {
     $container->parameters()
         ->set('baldinof_road_runner.intercept_side_effect', true);
+
+    $container->parameters()
+        ->set('baldinof_road_runner.temporal_address', 'temporal:7233');
 
     $services = $container->services();
 
@@ -50,6 +60,39 @@ return static function (ContainerConfigurator $container) {
 
     $services->set(HttpWorkerInterface::class, HttpWorker::class)
         ->args([service(RoadRunnerWorkerInterface::class)]);
+
+    $services
+        ->set(TemporalWorker::class)
+        ->public()
+        ->tag('monolog.logger', ['channel' => BaldinofRoadRunnerExtension::MONOLOG_CHANNEL])
+        ->lazy()
+        ->args([
+            service('kernel'),
+            service(WorkerFactoryInterface::class),
+            tagged_iterator('baldinof_road_runner.temporal_workflows'),
+            tagged_iterator('baldinof_road_runner.temporal_activities'),
+        ]);
+
+    $services
+        ->set(WorkerResolverInterface::class, WorkerResolver::class)
+        ->args([
+            service(EnvironmentInterface::class),
+            service(\Baldinof\RoadRunnerBundle\Worker\HttpWorker::class),
+            service(TemporalWorker::class),
+        ]);
+
+    $services
+        ->set(WorkflowClientInterface::class, WorkflowClient::class)
+        ->args([
+            service(ServiceClient::class),
+        ]);
+
+    $services
+        ->set(ServiceClient::class)
+        ->factory([ServiceClient::class, 'create'])
+        ->args([
+            param('baldinof_road_runner.temporal_address')
+        ]);
 
     $services->set(RPCInterface::class)
         ->factory([RPCFactory::class, 'fromEnvironment'])
@@ -72,6 +115,13 @@ return static function (ContainerConfigurator $container) {
             service('kernel'),
             service(LoggerInterface::class),
             service(HttpFoundationWorkerInterface::class),
+        ]);
+
+    $services
+        ->get(WorkerRegistryInterface::class)
+        ->call('registerWorker', [
+            Environment\Mode::MODE_TEMPORAL,
+            service(TemporalWorker::class),
         ]);
 
     $services
