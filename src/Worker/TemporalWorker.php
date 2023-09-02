@@ -37,7 +37,16 @@ class TemporalWorker implements WorkerInterface
     public function start(): void
     {
         $this->dependencies->getEventDispatcher()->dispatch(new WorkerStartEvent());
-        $worker = $this->workerFactory->newWorker();
+        $this->runWorkers();
+        $this->runWorkers(\gethostname()); // Run host-specific pullers
+        $this->workerFactory->run();
+        $this->dependencies->getEventDispatcher()->dispatch(new WorkerStopEvent());
+    }
+
+    private function runWorkers(
+        string $taskQueue = WorkerFactoryInterface::DEFAULT_TASK_QUEUE,
+    ): void {
+        $worker = $this->workerFactory->newWorker($taskQueue);
 
         foreach ($this->workflows as $workflow) {
             $worker->registerWorkflowTypes(get_class($workflow));
@@ -46,8 +55,5 @@ class TemporalWorker implements WorkerInterface
         foreach ($this->activities as $activity) {
             $worker->registerActivityImplementations($activity);
         }
-
-        $this->workerFactory->run();
-        $this->dependencies->getEventDispatcher()->dispatch(new WorkerStopEvent());
     }
 }
