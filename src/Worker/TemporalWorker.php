@@ -37,8 +37,7 @@ class TemporalWorker implements WorkerInterface
     public function start(): void
     {
         $this->dependencies->getEventDispatcher()->dispatch(new WorkerStartEvent());
-        $this->runWorkers();
-        $this->runWorkers(\gethostname()); // Run host-specific pullers
+        $this->runWorkers(\getenv('TEMPORAL_QUEUE_KIND'));
         $this->workerFactory->run();
         $this->dependencies->getEventDispatcher()->dispatch(new WorkerStopEvent());
     }

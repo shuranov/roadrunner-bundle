@@ -47,7 +47,7 @@ return static function (ContainerConfigurator $container) {
         ->set('baldinof_road_runner.intercept_side_effect', true);
 
     $container->parameters()
-        ->set('baldinof_road_runner.temporal_address', 'temporal:7233');
+        ->set('baldinof_road_runner.temporal_address', \getenv('TEMPORAL_ADDRESS'));
 
     $services = $container->services();
 
