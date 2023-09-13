@@ -37,12 +37,12 @@ class TemporalWorker implements WorkerInterface
     public function start(): void
     {
         $this->dependencies->getEventDispatcher()->dispatch(new WorkerStartEvent());
-        if ($queueKind = \getenv('TEMPORAL_QUEUE_KIND')) {
-            $this->runWorkers($queueKind);
+        if ($mainQueue = \getenv('MAIN_QUEUE')) {
+            $this->runWorkers($mainQueue);
         }
 
-        if ($queueDefault = \getenv('TEMPORAL_QUEUE_DEFAULT')) {
-            $this->runWorkers($queueDefault);
+        if ($personalQueue = \getenv('PERSONAL_QUEUE')) {
+            $this->runWorkers($personalQueue);
         }
 
         $this->workerFactory->run();
