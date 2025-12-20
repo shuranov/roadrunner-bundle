@@ -7,6 +7,7 @@ namespace Baldinof\RoadRunnerBundle\Worker;
 use Baldinof\RoadRunnerBundle\Event\WorkerStartEvent;
 use Baldinof\RoadRunnerBundle\Event\WorkerStopEvent;
 use Symfony\Component\HttpKernel\KernelInterface;
+use Temporal\Interceptor\PipelineProvider;
 use Temporal\Worker\WorkerFactoryInterface;
 
 class TemporalWorker implements WorkerInterface
@@ -15,15 +16,17 @@ class TemporalWorker implements WorkerInterface
     private WorkerFactoryInterface $workerFactory;
     private iterable $workflows;
     private iterable $activities;
+    private ?PipelineProvider $interceptorProvider;
 
     public function __construct(
         KernelInterface $kernel,
         WorkerFactoryInterface $workerFactory,
         iterable $workflows,
-        iterable $activities
-    )
-    {
+        iterable $activities,
+        ?PipelineProvider $interceptorProvider = null,
+    ) {
         $this->workerFactory = $workerFactory;
+        $this->interceptorProvider = $interceptorProvider;
         $container = $kernel->getContainer();
 
         /** @var HttpDependencies $dependencies */
@@ -52,7 +55,12 @@ class TemporalWorker implements WorkerInterface
     private function runWorkers(
         string $taskQueue = WorkerFactoryInterface::DEFAULT_TASK_QUEUE,
     ): void {
-        $worker = $this->workerFactory->newWorker($taskQueue);
+        $worker = $this->workerFactory->newWorker(
+            $taskQueue,
+            null, // WorkerOptions
+            null, // ExceptionInterceptor
+            $this->interceptorProvider,
+        );
 
         foreach ($this->workflows as $workflow) {
             $worker->registerWorkflowTypes(get_class($workflow));
