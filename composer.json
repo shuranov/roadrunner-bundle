@@ -26,12 +26,12 @@
         "symfony/dependency-injection": "^6.0",
         "symfony/http-kernel": "^6.0",
         "symfony/yaml": "^6.0",
-        "spiral/roadrunner": "^2023.1.0",
-        "spiral/roadrunner-worker": "^3.0.0",
+        "spiral/roadrunner": "^2023.1 || ^2025.1",
+        "spiral/roadrunner-worker": "^3.0",
         "spiral/goridge": "^4.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0",
         "spiral/roadrunner-http": "^3.0",
-        "temporal/sdk": "^2.5"
+        "temporal/sdk": "^2.17"
     },
     "suggest": {
         "nyholm/psr7": "For a super lightweight PSR-7/17 implementation",
